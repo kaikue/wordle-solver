@@ -7,13 +7,6 @@ def generate_words_file(word_len):
     dict_file.close()
     output_file.close()
 
-#find the guess that eliminates the most possibilities (best average-case performance)
-#if not the first guess: eliminate possible words based on input
-#for each potential guess:
-#   for each possible answer: what if it was that answer? how many possibilities would that eliminate?
-#   across all possible answers: what is the average # of possibilities eliminated?
-#across all possible guesses: what is the highest average elimination?
-
 def read_words_file(word_len):
     words = set()
     file = open("words_len" + str(word_len) + ".txt", "r")
@@ -41,6 +34,7 @@ def generate_response(guess, answer):
     return response
 
 def find_best_guess(possibilities):
+    #find guess with highest average eliminations
     best_avg_elims = -1
     best_guess = None
     for guess in possibilities:
@@ -57,23 +51,6 @@ def find_best_guess(possibilities):
             best_guess = guess
     return best_guess
 
-"""
-def valid(word, guess, response):
-    return generate_response(guess, word) == response
-    
-    # remove all greens
-    # yellows: must be anywhere but in that position
-    # blacks: must not appear at all except as designated by other yellows/greens
-    for i in range(len(response)):
-        if response[i] == "g":
-            if word[i] != guess[i]:
-                return False
-        elif response[i] == "b":
-            if word[i] == guess[i]:
-                return False
-    return True
-"""
-
 def eliminate_possibilities(possibilities, guess, response):
     possibilities_reduced = possibilities.copy()
     for word in possibilities:
@@ -84,7 +61,6 @@ def eliminate_possibilities(possibilities, guess, response):
 
 def play(word_len, response_func):
     possibilities = read_words_file(word_len)
-    #guess_responses = []
     tries = 0
     
     tries = 1
@@ -105,7 +81,6 @@ def play(word_len, response_func):
         if response == "g" * word_len:
             print("Won in " + str(tries) + " tries!")
             return
-        #guess_responses.insert(0, (guess, response))
         possibilities = eliminate_possibilities(possibilities, guess, response)
 
 def play_real(word_len):
@@ -121,5 +96,9 @@ def play_fake(answer):
     play(len(answer), get_response)
 
 #generate_words_file(5)
-play_real(5)
-#play_fake("robot")
+#play_real(5)
+import time
+start_time = time.time()
+play_fake("robot")
+end_time = time.time()
+print("Elapsed time: {:.2f}".format(end_time - start_time))
