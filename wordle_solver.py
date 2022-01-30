@@ -1,3 +1,5 @@
+import numpy as np
+
 def generate_words_file(word_len):
     dict_file = open("words_alpha.txt", "r")
     output_file = open("words_len" + str(word_len) + ".txt", "w")
@@ -8,10 +10,10 @@ def generate_words_file(word_len):
     output_file.close()
 
 def read_words_file(word_len):
-    words = set()
+    words = []
     file = open("words_len" + str(word_len) + ".txt", "r")
     for word in file:
-        words.add(word.strip())
+        words.append(word.strip())
     return words
 
 def generate_response(guess, answer):
@@ -33,55 +35,48 @@ def generate_response(guess, answer):
                 response += "b"
     return response
 
+vec_response = np.vectorize(generate_response)
+
 def find_best_guess(possibilities):
     #find guess with highest average eliminations
-    best_avg_elims = -1
+    best_remain = None
     best_guess = None
     for guess in possibilities:
-        total_elims = 0
+        total_remain = 0
         for answer in possibilities:
             response = generate_response(guess, answer)
             result_possibilities = eliminate_possibilities(possibilities, guess, response)
-            eliminations = len(possibilities) - len(result_possibilities)
-            total_elims += eliminations
-        avg_elims = total_elims / len(possibilities)
-        #print("guess:", guess, "avg elims:", avg_elims)
-        if avg_elims > best_avg_elims:
-            best_avg_elims = avg_elims
+            total_remain += result_possibilities.size
+        if best_guess is None or total_remain < best_remain:
+            best_remain = total_remain
             best_guess = guess
     return best_guess
 
 def eliminate_possibilities(possibilities, guess, response):
-    possibilities_reduced = possibilities.copy()
-    for word in possibilities:
-        word_response = generate_response(guess, word)
-        if word_response != response:
-            possibilities_reduced.remove(word)
-    return possibilities_reduced
+    return possibilities[np.where(vec_response(guess, possibilities) == response)]
 
 def play(word_len, response_func):
-    possibilities = read_words_file(word_len)
+    possibilities = np.array(read_words_file(word_len))
     tries = 0
     
-    tries = 1
-    guess = "arose"
-    print("Guess: " + guess)
-    response = response_func(guess)
-    if response == "g" * word_len:
-        print("Won in " + str(tries) + " tries!")
-        return
-    possibilities = eliminate_possibilities(possibilities, guess, response)
-    
-    while True:
-        tries += 1
-        print("Possibilities:", len(possibilities))
-        guess = find_best_guess(possibilities)
+    def guess_word(guess, word_len, response_func):
+        nonlocal possibilities
+        print("Possibilities:", possibilities.size)
         print("Guess: " + guess)
         response = response_func(guess)
         if response == "g" * word_len:
+            return True
+        possibilities = eliminate_possibilities(possibilities, guess, response)
+        return False
+    
+    guess = "arose"
+    while True:
+        tries += 1
+        result = guess_word(guess, word_len, response_func)
+        if result:
             print("Won in " + str(tries) + " tries!")
             return
-        possibilities = eliminate_possibilities(possibilities, guess, response)
+        guess = find_best_guess(possibilities)
 
 def play_real(word_len):
     def get_response(guess):
