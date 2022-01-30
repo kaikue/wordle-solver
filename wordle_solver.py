@@ -21,12 +21,11 @@ def generate_response(guess, answer):
     used = [False] * len(guess)
     for i in range(len(guess)):
         if guess[i] == answer[i]:
-            used[i] = True
             response += "g"
         else:
             found_yellow = False
             for j in range(len(guess)):
-                if j != i and answer[j] == guess[i] and not used[j]:
+                if j != i and answer[j] == guess[i] and not used[j] and answer[j] != guess[j]:
                     used[j] = True
                     response += "y"
                     found_yellow = True
@@ -37,23 +36,29 @@ def generate_response(guess, answer):
 
 vec_response = np.vectorize(generate_response)
 
+def eliminate_possibilities(possibilities, guess, response):
+    return possibilities[np.where(vec_response(guess, possibilities) == response)]
+
+def count_eliminate_possibilities(possibilities, guess, response):
+    return eliminate_possibilities(possibilities, guess, response).size
+
+vec_count_eliminate = np.vectorize(count_eliminate_possibilities, excluded=["possibilities"])
+
 def find_best_guess(possibilities):
     #find guess with highest average eliminations
     best_remain = None
     best_guess = None
     for guess in possibilities:
-        total_remain = 0
+        total_remain = np.sum(vec_count_eliminate(possibilities=possibilities, guess=guess, response=vec_response(guess, possibilities)))
+        """total_remain = 0
         for answer in possibilities:
             response = generate_response(guess, answer)
             result_possibilities = eliminate_possibilities(possibilities, guess, response)
-            total_remain += result_possibilities.size
+            total_remain += result_possibilities.size"""
         if best_guess is None or total_remain < best_remain:
             best_remain = total_remain
             best_guess = guess
     return best_guess
-
-def eliminate_possibilities(possibilities, guess, response):
-    return possibilities[np.where(vec_response(guess, possibilities) == response)]
 
 def play(word_len, response_func):
     possibilities = np.array(read_words_file(word_len))
@@ -61,12 +66,12 @@ def play(word_len, response_func):
     
     def guess_word(guess, word_len, response_func):
         nonlocal possibilities
-        print("Possibilities:", possibilities.size)
         print("Guess: " + guess)
         response = response_func(guess)
-        if response == "g" * word_len:
+        if (response == "g" * word_len) or (response == ""):
             return True
         possibilities = eliminate_possibilities(possibilities, guess, response)
+        print("Possibilities:", possibilities.size)
         return False
     
     guess = "arose"
@@ -91,9 +96,12 @@ def play_fake(answer):
     play(len(answer), get_response)
 
 #generate_words_file(5)
-#play_real(5)
+play_real(5)
+
+"""
 import time
 start_time = time.time()
-play_fake("robot")
+play_fake("hobby")
 end_time = time.time()
 print("Elapsed time: {:.2f}".format(end_time - start_time))
+#"""
