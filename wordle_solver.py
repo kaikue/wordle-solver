@@ -1,4 +1,5 @@
 import numpy as np
+import json
 
 def generate_words_file(word_len):
     dict_file = open("words_alpha.txt", "r")
@@ -8,6 +9,26 @@ def generate_words_file(word_len):
             output_file.write(word)
     dict_file.close()
     output_file.close()
+
+def gen_init_guess_recursive(word, possibilities, results, response):
+    if len(response) == len(word):
+        print(response, end=": ")
+        possibilities = eliminate_possibilities(possibilities, word, response)
+        best_guess = find_best_guess(possibilities)
+        results[response] = best_guess
+        print(best_guess)
+        return
+    for letter in ["g", "y", "b"]:
+        gen_init_guess_recursive(word, possibilities, results, response + letter)
+
+def generate_initial_guesses(starting_word):
+    possibilities = np.array(read_words_file(len(starting_word)))
+    initial_guesses = {}
+    gen_init_guess_recursive(starting_word, possibilities, initial_guesses, "")
+    json_str = json.dumps(initial_guesses, indent=4)
+    guesses_file = open("initial_guesses_" + starting_word + ".json", "w")
+    guesses_file.write(json_str)
+    guesses_file.close()
 
 def read_words_file(word_len):
     words = []
@@ -62,23 +83,32 @@ def find_best_guess(possibilities):
 
 def play(word_len, response_func):
     possibilities = np.array(read_words_file(word_len))
-    tries = 0
-    
     def guess_word(guess, word_len, response_func):
         nonlocal possibilities
         print("Guess: " + guess)
         response = response_func(guess)
         if (response == "g" * word_len) or (response == ""):
-            return True
+            return None
         possibilities = eliminate_possibilities(possibilities, guess, response)
         print("Possibilities:", possibilities.size)
-        return False
+        return response
     
     guess = "arose"
+    tries = 0
+    
+    initial_guesses_file = open("initial_guesses_" + guess + ".json")
+    initial_guesses = json.load(initial_guesses_file)
+    tries = 1
+    result = guess_word(guess, word_len, response_func)
+    if result is None:
+        print("Won in 1 try... wow!")
+        return
+    guess = initial_guesses[result]
+    
     while True:
         tries += 1
         result = guess_word(guess, word_len, response_func)
-        if result:
+        if result is None:
             print("Won in " + str(tries) + " tries!")
             return
         guess = find_best_guess(possibilities)
@@ -96,6 +126,7 @@ def play_fake(answer):
     play(len(answer), get_response)
 
 #generate_words_file(5)
+#generate_initial_guesses("arose")
 play_real(5)
 
 """
