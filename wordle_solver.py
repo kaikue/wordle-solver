@@ -30,6 +30,23 @@ def generate_initial_guesses(starting_word):
     guesses_file.write(json_str)
     guesses_file.close()
 
+def test_all(word_len):
+    words = read_words_file(str(word_len) + "_answers")
+    max_tries = 0
+    hardest_word = ""
+    total_tries = 0
+    for word in words:
+        tries = play_fake(word)
+        if tries > max_tries:
+            max_tries = tries
+            hardest_word = word
+        total_tries += tries
+    average_tries = total_tries / len(words)
+    print()
+    print("Played", len(words), "words")
+    print("Average guesses:", average_tries)
+    print("Max tries:", max_tries, "(" + hardest_word + ")")
+
 def read_words_file(word_len):
     words = []
     file = open("words_len" + str(word_len) + ".txt", "r")
@@ -96,38 +113,40 @@ def play(word_len, response_func):
     guess = "arose"
     tries = 0
     
-    initial_guesses_file = open("initial_guesses_" + guess + ".json")
+    """initial_guesses_file = open("initial_guesses_" + guess + ".json")
     initial_guesses = json.load(initial_guesses_file)
     tries = 1
     result = guess_word(guess, word_len, response_func)
     if result is None:
         print("Won in 1 try... wow!")
-        return
-    guess = initial_guesses[result]
+        return tries
+    guess = initial_guesses[result]"""
     
     while True:
         tries += 1
         result = guess_word(guess, word_len, response_func)
         if result is None:
             print("Won in " + str(tries) + " tries!")
-            return
+            return tries
         guess = find_best_guess(possibilities)
 
 def play_real(word_len):
     def get_response(guess):
         return input("Response: ").lower()
-    play(word_len, get_response)
+    return play(word_len, get_response)
 
 def play_fake(answer):
     def get_response(guess):
         response = generate_response(guess, answer)
         print("Response: " + response)
         return response
-    play(len(answer), get_response)
+    return play(len(answer), get_response)
 
 #generate_words_file(5)
 #generate_initial_guesses("arose")
+#test_all(5)
 play_real(5)
+#play_fake("boxer")
 
 """
 import time
